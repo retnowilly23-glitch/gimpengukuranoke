@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THE ULTIMATE PHYSICS CHALLENGE</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+    
+    body { 
+      font-family: 'Plus Jakarta Sans', sans-serif; 
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%); 
+      margin: 0; 
+      overflow: hidden; 
+      color: #1e293b;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-font { font-family: 'Orbitron', sans-serif; }
+
+    .game-container {
+      width: 100vw;
+      height: 56.25vw;
+      max-height: 100vh;
+      max-width: 177.78vh;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border: 2px solid white;
+      box-shadow: 0 10px 30px rgba(30, 41, 59, 0.05);
+    }
+
+    .active-player {
+      border: 4px solid #3b82f6 !important;
+      background: white !important;
+      transform: scale(1.03);
+    }
+
+    .btn-used { opacity: 0.1 !important; pointer-events: none; }
+    .btn-locked { opacity: 0.5 !important; pointer-events: none; cursor: not-allowed; }
+    
+    .category-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 900; }
+
+    #wheel-svg { filter: drop-shadow(0 15px 25px rgba(0,0,0,0.1)); }
+    
+    .winner-anim { animation: celebrate 0.5s ease infinite alternate; }
+    @keyframes celebrate { from { transform: scale(1); } to { transform: scale(1.05); } }
+  </style>
+</head>
+<body>
+
+  <div id="app" class="game-container">
+    
+    <header class="text-center mb-4">
+      <h1 class="header-font text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-700 uppercase italic leading-none">
+        The Ultimate Physics Challenge
+      </h1>
+      <p class="header-font text-base font-bold tracking-[0.5em] text-indigo-500 mt-2 uppercase">Master of Measurement</p>
+    </header>
+
+    <div id="setup-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-blue-50/95 backdrop-blur-md">
+      <div class="text-center w-full max-w-2xl">
+        <h1 class="header-font text-5xl font-black text-indigo-900 mb-2 uppercase italic leading-tight">THE ULTIMATE PHYSICS CHALLENGE</h1>
+        <p class="header-font text-xl font-bold text-blue-600 mb-12 tracking-[0.3em] uppercase">Master of Measurement</p>
+        <div class="glass-card p-10 rounded-[3rem] shadow-2xl mx-auto max-w-md border-4 border-white">
+          <div class="space-y-4 mb-8">
+            <input type="text" id="p1-name" placeholder="Nama Peserta 1" class="w-full p-4 rounded-2xl border-2 border-slate-100 focus:border-blue-400 text-center font-bold text-lg">
+            <input type="text" id="p2-name" placeholder="Nama Peserta 2" class="w-full p-4 rounded-2xl border-2 border-slate-100 focus:border-blue-400 text-center font-bold text-lg">
+            <input type="text" id="p3-name" placeholder="Nama Peserta 3" class="w-full p-4 rounded-2xl border-2 border-slate-100 focus:border-blue-400 text-center font-bold text-lg">
+          </div>
+          <button onclick="startGame()" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black header-font tracking-widest hover:bg-indigo-700 uppercase text-lg">Masuk Arena</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="game-screen" class="flex-1 flex gap-6 overflow-hidden">
+      <div class="w-[35%] flex flex-col glass-card rounded-[2.5rem] p-6 relative">
+        <div id="turn-indicator" class="header-font text-[16px] font-black text-center mb-4 text-blue-600 py-2 bg-blue-50 rounded-full border border-blue-100 uppercase">PILIH PESERTA DAHULU</div>
+        <div class="flex-1 flex flex-col items-center justify-center relative min-h-0">
+          <div class="absolute top-0 z-20">
+            <div class="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-red-500"></div>
+          </div>
+          <svg id="wheel-svg" viewBox="0 0 200 200" class="w-full max-h-[380px] transition-transform duration-[4s] cubic-bezier(0.15, 0, 0.15, 1)"></svg>
+        </div>
+        <div class="mt-4 space-y-3">
+          <div id="spin-msg" class="text-center h-20 flex flex-col items-center justify-center font-black uppercase text-2xl drop-shadow-sm"></div>
+          <button id="spin-btn" disabled onclick="spinWheel()" class="w-full py-4 bg-blue-600 text-white disabled:bg-slate-200 rounded-2xl font-black header-font uppercase text-lg">Putar Spinner</button>
+        </div>
+      </div>
+
+      <div class="flex-1 flex flex-col gap-4 overflow-hidden">
+        <div class="flex justify-end gap-3">
+          <div id="p0-card" class="glass-card px-4 py-2 rounded-2xl text-center min-w-[150px] cursor-pointer">
+            <div id="p0-label" class="header-font text-base font-black truncate text-indigo-900 mb-0.5 uppercase">-</div>
+            <div id="p0-score" class="text-3xl font-black text-blue-600">0</div>
+          </div>
+          <div id="p1-card" class="glass-card px-4 py-2 rounded-2xl text-center min-w-[150px] cursor-pointer">
+            <div id="p1-label" class="header-font text-base font-black truncate text-indigo-900 mb-0.5 uppercase">-</div>
+            <div id="p1-score" class="text-3xl font-black text-blue-600">0</div>
+          </div>
+          <div id="p2-card" class="glass-card px-4 py-2 rounded-2xl text-center min-w-[150px] cursor-pointer">
+            <div id="p2-label" class="header-font text-base font-black truncate text-indigo-900 mb-0.5 uppercase">-</div>
+            <div id="p2-score" class="text-3xl font-black text-blue-600">0</div>
+          </div>
+        </div>
+        <div id="categories-container" class="flex-1 flex flex-col justify-between gap-3 overflow-hidden"></div>
+      </div>
+    </div>
+
+    <div id="win-screen" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-indigo-950/95 backdrop-blur-2xl p-10">
+      <div class="text-center w-full max-w-3xl">
+        <div class="mb-8 flex justify-center text-6xl">🏆</div>
+        <h2 class="header-font text-5xl font-black text-white mb-2 uppercase italic tracking-tighter">PERMAINAN SELESAI</h2>
+        <div id="podium" class="space-y-4 mb-12"></div>
+        <button onclick="location.reload()" class="px-12 py-5 bg-blue-600 text-white rounded-full font-black header-font text-xl hover:scale-110 transition-transform uppercase tracking-widest">Mulai Sesi Baru</button>
+      </div>
+    </div>
+
+    <div id="q-modal" class="hidden fixed inset-0 bg-slate-900/60 z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
+      <div class="bg-white p-10 rounded-[3rem] max-w-5xl w-full max-h-[95vh] overflow-y-auto border-[6px] border-slate-800 shadow-2xl">
+        <div class="flex justify-between items-center mb-6 pb-4 border-b-2 border-slate-100">
+          <span id="q-cat-tag" class="header-font px-4 py-1.5 bg-indigo-600 text-[10px] text-white rounded-full font-black uppercase"></span>
+          <span id="q-pts-tag" class="header-font text-2xl font-black text-orange-500 italic"></span>
+        </div>
+        
+        <div id="q-img-container" class="hidden mb-6 flex justify-center">
+          <img id="q-img" src="" class="max-h-64 rounded-xl border-2 border-slate-100 object-contain shadow-sm">
+        </div>
+
+        <div id="q-text" class="text-2xl font-bold mb-8 text-slate-800 leading-tight"></div>
+        <div id="q-options" class="grid grid-cols-1 gap-3"></div>
+        <div id="q-feedback" class="hidden mt-6 p-5 rounded-3xl text-center font-black text-2xl"></div>
+        <button id="q-close" onclick="closeQuestion()" class="hidden w-full mt-6 py-4 bg-slate-900 text-white rounded-2xl font-black header-font uppercase text-lg">Lanjutkan</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- KONFIGURASI AUDIO ---
+    const sfx = {
+      spin: new Audio('spin.mp3'),
+      zonk: new Audio('zonk.mp3'),
+      wildcard: new Audio('wildcard.mp3'),
+      bonus: new Audio('bonus.mp3'),
+      click: new Audio('click.mp3'),
+      correct: new Audio('correct.mp3'),
+      wrong: new Audio('wrong.mp3'),
+      applause: new Audio('applause.mp3')
+    };
+
+    function playSFX(name) {
+      if(sfx[name]) {
+        sfx[name].currentTime = 0;
+        sfx[name].play().catch(e => console.warn("Audio play blocked"));
+      }
+    }
+
+    // --- DATA SOAL ---
+    const categories = [
+      { id: 1, name: "Besaran, Satuan & Dimensi", color: "#3b82f6" },
+      { id: 2, name: "Alat Ukur", color: "#10b981" },
+      { id: 3, name: "Angka Penting", color: "#f59e0b" },
+      { id: 4, name: "Ketidakpastian", color: "#8b5cf6" }
+    ];
+
+    const questions = {
+      1: [
+        { points: 10, question: "Pernyataan berikut yang menunjukkan kelompok besaran vektor adalah ....", image: null, options: ["Usaha, kecepatan, panjang, massa", "Massa, usaha, energi potensial, panjang", "Percepatan, suhu, luas, kecepatan", "Gaya, kecepatan, tekanan, impuls"], correct: 3 },
+        { points: 20, question: "Pasangan besaran turunan yang memiliki satuan sama adalah ....", image: null, options: ["Usaha dan gaya", "Berat dan energi", "Momentum dan gaya", "Momentum dan impuls"], correct: 3 },
+        { points: 30, question: "Suatu besaran mempunyai satuan Pascal. Besaran dengan satuan tersebut merupakan turunan dari besaran pokok ....", image: null, options: ["Massa, panjang, dan suhu", "Massa, panjang, dan waktu", "Massa, waktu, dan suhu", "Panjang, waktu, dan suhu"], correct: 1 },
+        { points: 40, question: "Sebuah tetapan mempunyai satuan Joule Sekon. Dimensi dari tetapan tersebut adalah ....", image: null, options: ["[L]² [T]⁻¹", "[L]² [T]", "[M] [L]⁻² [T]", "[M] [L]² [T]⁻¹"], correct: 3 },
+        { points: 50, question: "Jika G merupakan konstanta gravitasi dari persamaan gaya tarik antara dua benda (F = G.m1.m2 / r²), maka satuan dan dimensi G adalah ....", image: null, options: ["N·m²/kg² dan [M]⁻¹ [L]³ [T]⁻²", "N/kg dan [M] [L] [T]⁻²", "kg/m² dan [M] [L]⁻²", "N/m² dan [M] [L]⁻¹ [T]⁻²"], correct: 0 }
+      ],
+      2: [
+        { points: 10, question: "Berdasarkan ciri: memiliki rahang geser, roda pengunci, dan skala Vernier, alat ukur yang dimaksud adalah ....", image: null, options: ["Stopwatch", "Jangka Sorong", "Neraca Ohaus", "Mikrometer Sekrup"], correct: 1 },
+        { points: 20, question: "Perhatikan gambar. Hasil pengukuran mikrometer sekrup tersebut adalah ....", image: "soalB2.jpg", options: ["3,10 mm", "3,13 mm", "3,63 mm", "3,65 mm"], correct: 1 },
+        { points: 30, question: "Perhatikan gambar jangka sorong dan mikrometer sekrup. Panjang dan diameter pensil berturut-turut adalah ....", image: "soalB3.jpg", options: ["6,53 cm dan 4,17 mm", "6,53 cm dan 4,27 mm", "6,63 cm dan 4,17 mm", "6,63 cm dan 4,27 mm"], correct: 0 },
+        { points: 40, question: "Gambar mikrometer sekrup manakah yang menunjukkan hasil pengukuran tepat 2,23 mm?", image: "soalB41.jpg", options: ["Gambar A", "Gambar B", "Gambar C", "Gambar D"], correct: 3 },
+        { points: 50, question: "Berdasarkan hasil pengukuran massa dan volume pada gambar, massa jenis batu tersebut adalah ....", image: "soalB5.jpg", options: ["4,62 g/mL", "4,72 g/mL", "7,35 g/mL", "9,44 g/mL"], correct: 3 }
+      ],
+      3: [
+        { points: 10, question: "Hasil pengukuran massa berikut yang mempunyai tepat 3 angka penting adalah ....", image: null, options: ["1,205 kg", "1,005 kg", "1,040 kg", "0,204 kg"], correct: 3 },
+        { points: 20, question: "Manakah pernyataan yang menunjukkan hasil pengukuran dengan 4 angka penting? (1) 522,0 km, (2) 345,8 kg, (3) 420,2 m, (4) 0,225 g, (5) 5,44 mm", image: null, options: ["1), 2), dan 3)", "1), 2), dan 4)", "1), 3), dan 5)", "2), 3), dan 4)"], correct: 0 },
+        { points: 30, question: "Hasil penjumlahan dari 23,13 + 201,4 menurut aturan angka penting adalah ....", image: null, options: ["224,53", "224,5", "225,0", "225"], correct: 1 },
+        { points: 40, question: "Mobil berjalan 25,75 m/s. Waktu yang dibutuhkan untuk menempuh 120,75 m berdasarkan aturan angka penting adalah ....", image: null, options: ["4,689 s", "4,69 s", "4,7 s", "4,789 s"], correct: 0 },
+        { points: 50, question: "Jarak bumi-matahari 1,5 x 10¹¹ m dan kelajuan cahaya 3 x 10⁸ m/s. Waktu yang dibutuhkan cahaya untuk sampai ke bumi berdasarkan aturan AP dan notasi ilmiah adalah ....", image: null, options: ["0,05 x 10⁴ s", "0,5 x 10³ s", "5 x 10² s", "5,0 x 10² s"], correct: 2 }
+      ],
+      4: [
+        { points: 10, question: "Kemampuan alat ukur untuk memberikan hasil pengukuran yang sama pada pengukuran berulang disebut ....", image: null, options: ["Keakuratan", "Ketepatan", "Ketelitian", "Ketidakpastian"], correct: 2 },
+        { points: 20, question: "Hasil pengukuran tebal kertas adalah 2,83 mm. Menggunakan mikrometer sekrup, penulisan data laporan yang benar adalah ....", image: null, options: ["(2,80 ± 0,01) mm", "(2,800 ± 0,005) mm", "(2,83 ± 0,05) mm", "(2,830 ± 0,005) mm"], correct: 3 },
+        { points: 30, question: "Berdasarkan tabel pengukuran berulang pada gambar, urutan peserta didik dari yang pengukurannya paling tepat adalah ....", image: "soalD3.jpg", options: ["Bino-Chika-Dido", "Bino-Dido-Chika", "Chika-Bino-Dido", "Chika-Dido-Bino"], correct: 2 },
+        { points: 40, question: "Hasil ukur 4,47 cm, sedangkan panjang sebenarnya 4,50 cm. Kesalahan relatif pengukuran tersebut adalah ....", image: null, options: ["0,33%", "0,67%", "99,33%", "99,67%"], correct: 1 },
+        { points: 50, question: "Hasil ukur Andri (54,000 ± 0,020) cm dan Andra (54,000 ± 0,025) cm. Nilai ketepatan keduanya berturut-turut adalah ....", image: null, options: ["0,99974 dan 0,99963", "0,99963 dan 0,99954", "0,99963 dan 0,99981", "0,99974 dan 0,99954"], correct: 1 }
+      ]
+    };
+
+    let players = [];
+    let activePlayerIdx = null;
+    let usedQuestions = [];
+    let currentRotation = 0;
+    let spinResult = null;
+    let isZonk = false;
+
+    // --- FUNGSI CORE ---
+    function startGame() {
+      playSFX('click');
+      const names = [
+        document.getElementById('p1-name').value, 
+        document.getElementById('p2-name').value, 
+        document.getElementById('p3-name').value
+      ];
+      
+      if(names.some(n => !n.trim())) {
+        alert("Mohon lengkapi seluruh nama peserta!");
+        return;
+      }
+
+      players = names.map(n => ({ name: n, score: 0 }));
+      document.getElementById('setup-screen').classList.add('hidden');
+      
+      players.forEach((p, i) => {
+        document.getElementById(`p${i}-label`).textContent = p.name;
+        document.getElementById(`p${i}-card`).onclick = () => selectPlayer(i);
+      });
+      
+      renderCategories();
+      updateWheel();
+    }
+
+    function selectPlayer(idx) {
+      if(spinResult) return;
+      playSFX('click');
+      activePlayerIdx = idx;
+      isZonk = false; 
+      document.querySelectorAll('[id$="-card"]').forEach(c => c.classList.remove('active-player'));
+      document.getElementById(`p${idx}-card`).classList.add('active-player');
+      document.getElementById('turn-indicator').textContent = `GILIRAN: ${players[idx].name}`;
+      document.getElementById('spin-btn').disabled = false;
+      renderCategories();
+    }
+
+    function renderCategories() {
+      const container = document.getElementById('categories-container');
+      container.innerHTML = categories.map(cat => {
+        const qs = questions[cat.id].map((q, i) => {
+          const used = usedQuestions.includes(`${cat.id}-${i}`);
+          const locked = isZonk && !used; 
+          return `<button onclick="handleQuestionClick(${cat.id}, ${i})" 
+            ${(used || locked) ? 'disabled' : ''} 
+            style="background: ${used ? '#f1f5f9' : cat.color}; color: ${used ? '#cbd5e1' : 'white'};"
+            class="category-btn py-4 rounded-2xl shadow-md text-2xl ${used ? 'btn-used' : locked ? 'btn-locked' : 'hover:scale-110'}">
+            ${q.points}</button>`;
+        }).join('');
+        return `<div class="glass-card p-5 rounded-[2.5rem] border-l-[15px] flex flex-col justify-center h-[24%]" style="border-color: ${cat.color}">
+          <div class="text-sm uppercase font-black text-slate-500 mb-3 tracking-widest">${cat.name}</div>
+          <div class="grid grid-cols-5 gap-4">${qs}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function updateWheel() {
+      const svg = document.getElementById('wheel-svg');
+      const availableCats = categories.filter(cat => questions[cat.id].some((_, i) => !usedQuestions.includes(`${cat.id}-${i}`)));
+      
+      const segments = [
+        ...availableCats.map(c => ({ label: c.name, color: c.color, type: 'cat', id: c.id })),
+        { label: "ZONK", color: "#334155", type: 'zonk' },
+        { label: "WILDCARD", color: "#ec4899", type: 'friend' },
+        { label: "+10 POIN", color: "#f97316", type: 'bonus' }
+      ];
+      
+      const angle = 360 / segments.length;
+      let paths = "";
+      segments.forEach((s, i) => {
+        const startAngle = i * angle;
+        const endAngle = (i + 1) * angle;
+        const x1 = 100 + 95 * Math.cos(Math.PI * (startAngle - 90) / 180);
+        const y1 = 100 + 95 * Math.sin(Math.PI * (startAngle - 90) / 180);
+        const x2 = 100 + 95 * Math.cos(Math.PI * (endAngle - 90) / 180);
+        const y2 = 100 + 95 * Math.sin(Math.PI * (endAngle - 90) / 180);
+        paths += `<path d="M100,100 L${x1},${y1} A95,95 0 0,1 ${x2},${y2} Z" fill="${s.color}" stroke="white" stroke-width="1.5"/>`;
+        const textAngle = startAngle + (angle / 2);
+        paths += `<text x="100" y="32" transform="rotate(${textAngle}, 100, 100)" fill="white" font-size="5" font-family="Orbitron" font-weight="900" text-anchor="middle">${s.label}</text>`;
+      });
+      svg.innerHTML = paths;
+      window.currentSegments = segments;
+    }
+
+    function spinWheel() {
+      playSFX('spin');
+      document.getElementById('spin-btn').disabled = true;
+      const extraSpin = 1800 + Math.random() * 360;
+      currentRotation += extraSpin;
+      document.getElementById('wheel-svg').style.transform = `rotate(${currentRotation}deg)`;
+      const msg = document.getElementById('spin-msg');
+      msg.innerHTML = `<span class="text-blue-500 animate-pulse text-xl font-black">SCANNING...</span>`;
+
+      setTimeout(() => {
+        const normalized = (360 - (currentRotation % 360)) % 360;
+        const segIdx = Math.floor(normalized / (360 / window.currentSegments.length));
+        spinResult = window.currentSegments[segIdx];
+        
+        if(spinResult.type === 'zonk') {
+          playSFX('zonk');
+          isZonk = true;
+          msg.innerHTML = `<div class="text-slate-600">${spinResult.label}</div><div class="text-red-500 text-sm mt-1 uppercase font-bold">Ups! Kamu tidak bisa memilih soal</div>`;
+          setTimeout(endTurn, 2500);
+        } else if(spinResult.type === 'friend') {
+          playSFX('wildcard');
+          msg.innerHTML = `<div class="text-pink-500">${spinResult.label}</div><div class="text-pink-400 text-sm mt-1 italic uppercase font-bold">Bebas Pilih Soal!</div>`;
+        } else if(spinResult.type === 'bonus') {
+          playSFX('bonus');
+          msg.innerHTML = `<div class="text-orange-500">${spinResult.label}</div>`;
+          players[activePlayerIdx].score += 10;
+          updateScores();
+          setTimeout(endTurn, 2000);
+        } else {
+          msg.innerHTML = `<div class="px-6 py-2 rounded-2xl text-white text-xl" style="background: ${spinResult.color}">${spinResult.label}</div>`;
+        }
+      }, 4100);
+    }
+
+    function handleQuestionClick(catId, qIdx) {
+      if(!spinResult || isZonk) return;
+      if(spinResult.type === 'cat' && spinResult.id !== catId) {
+        alert("Pilih kategori " + spinResult.label + "!");
+        return;
+      }
+      
+      playSFX('click');
+      const q = questions[catId][qIdx];
+      const imgContainer = document.getElementById('q-img-container');
+      const imgElement = document.getElementById('q-img');
+      
+      if (q.image) {
+        imgElement.src = q.image;
+        imgContainer.classList.remove('hidden');
+      } else {
+        imgContainer.classList.add('hidden');
+      }
+
+      document.getElementById('q-cat-tag').textContent = categories.find(c=>c.id===catId).name;
+      document.getElementById('q-pts-tag').textContent = `${q.points} PTS`;
+      document.getElementById('q-text').textContent = q.question;
+      document.getElementById('q-options').innerHTML = q.options.map((o, i) => 
+        `<button onclick="submitAnswer(${catId}, ${qIdx}, ${i})" class="p-5 bg-slate-50 hover:bg-blue-50 rounded-2xl text-left font-bold text-xl border-2 border-slate-100 transition-colors">${o}</button>`
+      ).join('');
+      document.getElementById('q-modal').classList.remove('hidden');
+    }
+
+    function submitAnswer(catId, qIdx, chosen) {
+      const q = questions[catId][qIdx];
+      const feedback = document.getElementById('q-feedback');
+      usedQuestions.push(`${catId}-${qIdx}`); 
+      feedback.classList.remove('hidden');
+      
+      if(chosen === q.correct) {
+        playSFX('correct');
+        players[activePlayerIdx].score += q.points;
+        feedback.className = "mt-6 p-5 rounded-3xl text-center font-black text-emerald-600 bg-emerald-50 border-2 border-emerald-200";
+        feedback.textContent = `BENAR! +${q.points} POIN`;
+      } else {
+        playSFX('wrong');
+        players[activePlayerIdx].score -= q.points;
+        feedback.className = "mt-6 p-5 rounded-3xl text-center font-black text-red-600 bg-red-50 border-2 border-red-200";
+        feedback.textContent = `SALAH! -${q.points} POIN`;
+      }
+      document.getElementById('q-close').classList.remove('hidden');
+      updateScores();
+    }
+
+    function updateScores() {
+      players.forEach((p, i) => { document.getElementById(`p${i}-score`).textContent = p.score; });
+    }
+
+    function closeQuestion() {
+      document.getElementById('q-modal').classList.add('hidden');
+      document.getElementById('q-close').classList.add('hidden');
+      document.getElementById('q-feedback').classList.add('hidden');
+      endTurn();
+    }
+
+    function endTurn() {
+      spinResult = null;
+      activePlayerIdx = null;
+      document.getElementById('spin-msg').textContent = "";
+      document.getElementById('turn-indicator').textContent = "PILIH PESERTA BERIKUTNYA";
+      document.querySelectorAll('[id$="-card"]').forEach(c => c.classList.remove('active-player'));
+      document.getElementById('spin-btn').disabled = true;
+
+      // LOGIKA LEADERBOARD: Cek tombol yang tersisa di papan
+      let remaining = 0;
+      [1, 2, 3, 4].forEach(cId => {
+        questions[cId].forEach((_, idx) => {
+          if(!usedQuestions.includes(`${cId}-${idx}`)) remaining++;
+        });
+      });
+
+      if(remaining === 0) {
+        setTimeout(showWinner, 1000);
+      } else {
+        renderCategories();
+        updateWheel();
+      }
+    }
+
+    function showWinner() {
+      playSFX('applause');
+      const sorted = [...players].sort((a,b) => b.score - a.score);
+      const podium = document.getElementById('podium');
+      document.getElementById('win-screen').classList.remove('hidden');
+      podium.innerHTML = sorted.map((p, i) => `
+        <div class="flex items-center justify-between p-6 rounded-[2.5rem] glass-card ${i===0 ? 'border-blue-400 bg-white shadow-blue-200/50 winner-anim' : 'opacity-60 scale-95'}">
+          <div class="flex items-center gap-6">
+            <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center font-black text-2xl text-indigo-900 border-4 border-white">${i+1}</div>
+            <div class="text-left">
+              <div class="header-font text-2xl font-black text-indigo-900 uppercase">${p.name}</div>
+              ${i===0 ? '<div class="text-[20px] font-bold text-emerald-500 uppercase tracking-widest">Physics Grand Master</div>' : ''}
+            </div>
+          </div>
+          <div class="header-font text-3xl font-black text-blue-600">${p.score}</div>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
